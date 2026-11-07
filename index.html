@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>グラフ探偵 ― だましグラフを見破れ！</title>
+<meta name="description" content="軸を切った棒グラフや期間を切り取った折れ線など、だましグラフを見破る探偵ゲーム。教材用の作り話データで遊べます。">
+<meta name="theme-color" content="#1b2340">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="グラフ探偵">
+<style>
+:root{
+  --navy:#1b2340; --gold:#e8b84b; --paper:#faf5e9; --ink:#2b2b33;
+  --red:#c63e3e; --green:#2e8b57; --shadow:0 6px 18px rgba(10,12,30,.28);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans CJK JP","Yu Gothic UI",sans-serif;
+  background:#10142a; color:var(--ink); line-height:1.65;
+}
+button{font-family:inherit; cursor:pointer;}
+.hidden{display:none !important;}
+.serif{font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP",serif;}
+
+#topbar{
+  position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:10px;
+  background:linear-gradient(180deg,#232c58,#1b2340); color:#fff;
+  padding:8px 14px; box-shadow:0 2px 8px rgba(0,0,0,.35);
+}
+#topbar .logo{display:flex; align-items:center; gap:8px; font-weight:700; letter-spacing:.06em;}
+#topbar .logo img{width:30px;height:30px;border-radius:7px;}
+#topbar .spacer{flex:1;}
+#pointsBadge{
+  background:#0e1230; border:1.5px solid var(--gold); color:var(--gold);
+  border-radius:999px; padding:2px 14px; font-weight:700; font-size:15px; white-space:nowrap;
+}
+.iconbtn{
+  background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.25);
+  border-radius:8px; padding:4px 10px; font-size:14px;
+}
+
+#screen-title{
+  background:
+    radial-gradient(ellipse 90% 340px at 50% -60px, rgba(255,196,86,.34), rgba(255,196,86,0) 70%),
+    linear-gradient(180deg,#1b2340 0%, #232c58 46%, #171d38 100%);
+  min-height:100vh; padding:0 16px 56px; color:#fff; overflow:hidden; position:relative;
+}
+.lamp{position:absolute; top:0; left:50%; transform-origin:top center; animation:swing 5.5s ease-in-out infinite; z-index:1;}
+@keyframes swing{0%,100%{transform:translateX(-50%) rotate(2.4deg);}50%{transform:translateX(-50%) rotate(-2.4deg);}}
+.lamp .wire{width:3px;height:64px;background:#0a0d20;margin:0 auto;}
+.lamp .shade{width:120px;height:52px;background:linear-gradient(180deg,#3a4a8c,#232c58);border-radius:60px 60px 14px 14px;margin:0 auto;position:relative;box-shadow:0 0 60px 18px rgba(255,205,92,.45);}
+.lamp .bulb{position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);width:26px;height:26px;border-radius:50%;background:#ffd873;box-shadow:0 0 34px 12px rgba(255,205,92,.8);}
+.title-inner{position:relative; z-index:2; max-width:940px; margin:0 auto; padding:112px 0 0; text-align:center;}
+.office-sign{
+  display:inline-block; border:2px solid var(--gold); color:var(--gold); border-radius:6px;
+  padding:2px 16px; letter-spacing:.34em; font-size:13px; margin-bottom:10px; background:rgba(0,0,0,.25);
+}
+h1.game-title{
+  margin:4px 0 2px; font-size:clamp(44px,9vw,76px); line-height:1.12; letter-spacing:.04em;
+  background:linear-gradient(180deg,#fff2c4 15%,#e8b84b 55%,#a97e1f 90%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(0,0,0,.45));
+}
+.title-sub{font-size:clamp(17px,3.6vw,24px); color:#e9e4d2; margin:2px 0 6px; letter-spacing:.12em;}
+.title-lead{color:#c9cde4; font-size:15px; max-width:640px; margin:10px auto 0;}
+.mag-wrap{display:block; margin:16px auto 0; width:92px; animation:scan 4.2s ease-in-out infinite;}
+@keyframes scan{0%,100%{transform:translateX(-16px) rotate(-4deg);}50%{transform:translateX(16px) rotate(3deg);}}
+.fiction-note{
+  display:inline-block; margin-top:16px; background:rgba(255,255,255,.1);
+  border:1px dashed rgba(255,255,255,.5); color:#f2ecd9; border-radius:8px; padding:6px 14px; font-size:13.5px;
+}
+.case-list{max-width:940px; margin:30px auto 0; display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; position:relative; z-index:2;}
+.case-file{
+  text-align:left; border:none; width:100%; position:relative; color:var(--ink);
+  background:linear-gradient(180deg,#efe3c2,#e7d8ae); border-radius:6px 14px 10px 10px;
+  padding:30px 18px 16px; box-shadow:var(--shadow); transition:transform .15s ease;
+}
+.case-file::before{
+  content:""; position:absolute; top:-11px; left:18px; width:118px; height:22px;
+  background:#d9c48c; border-radius:8px 14px 0 0; box-shadow:inset 0 -4px 6px rgba(0,0,0,.08);
+}
+.case-file:hover{transform:translateY(-3px) rotate(-.3deg);}
+.case-file .no{font-size:12.5px; letter-spacing:.22em; color:#8a6d1f; font-weight:700;}
+.case-file h3{margin:2px 0 6px; font-size:21px;}
+.case-file .teaser{font-size:13.5px; color:#5a5342; margin:0;}
+.case-file .earn{margin-top:10px; font-size:13px; color:#8a6d1f; font-weight:700;}
+.stamp{
+  position:absolute; right:12px; top:22px; transform:rotate(10deg);
+  border:3px solid var(--red); color:var(--red); border-radius:6px; padding:1px 10px;
+  font-weight:800; letter-spacing:.18em; font-size:15px; background:rgba(255,255,255,.35);
+}
+.stamp.unsolved{border-color:#9a8f6d; color:#9a8f6d;}
+.title-actions{max-width:940px; margin:28px auto 0; display:flex; flex-wrap:wrap; gap:12px; justify-content:center; position:relative; z-index:2;}
+.btn{
+  border:none; border-radius:12px; padding:13px 24px; font-size:16.5px; font-weight:700;
+  box-shadow:0 4px 0 rgba(0,0,0,.3); transition:transform .08s ease, box-shadow .08s ease;
+}
+.btn:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.3);}
+.btn-gold{background:linear-gradient(180deg,#f4cd6a,#dfa92f); color:#3a2c05;}
+.btn-ghost{background:rgba(255,255,255,.1); color:#e9e4d2; border:1.5px solid rgba(255,255,255,.4); box-shadow:none;}
+.btn-navy{background:linear-gradient(180deg,#33448c,#232c58); color:#fff;}
+.btn-green{background:linear-gradient(180deg,#3aa76d,#2e8b57); color:#fff;}
+#allClearBanner{
+  max-width:720px; margin:26px auto 0; background:linear-gradient(180deg,#fff6d8,#ffe9a8);
+  color:#5c4303; border:2px solid var(--gold); border-radius:14px; padding:14px 18px; text-align:center;
+  box-shadow:var(--shadow); position:relative; z-index:2;
+}
+
+#screen-case{background:linear-gradient(180deg,#f7efdb,#efe4c8); min-height:100vh; padding:18px 14px 70px;}
+.case-inner{max-width:860px; margin:0 auto;}
+.backlink{background:none;border:none;color:#5a4a17;font-weight:700;font-size:15px;padding:6px 2px;}
+.case-head{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:4px 0;}
+.case-head .no{font-size:13px; letter-spacing:.22em; color:#8a6d1f; font-weight:700;}
+.case-head h2{margin:0; font-size:clamp(24px,5.4vw,34px);}
+.fiction-badge{
+  background:#fff8e1; border:1.5px dashed var(--red); color:var(--red); border-radius:8px;
+  padding:4px 12px; font-size:13.5px; font-weight:700;
+}
+.story-card{
+  background:#fffdf6; border:1px solid #e2d5ae; border-left:6px solid var(--gold);
+  border-radius:10px; padding:14px 18px; box-shadow:0 3px 10px rgba(90,70,10,.12); font-size:16px;
+}
+.story-card .who{font-weight:700; color:#8a6d1f; font-size:13.5px; letter-spacing:.1em;}
+.chart-card{
+  margin-top:16px; background:#fff; border-radius:14px; box-shadow:var(--shadow);
+  padding:16px 16px 10px; border:1px solid #e6ddc4; position:relative;
+}
+.chart-card .headline{font-size:clamp(18px,4.4vw,24px); font-weight:800; margin:0 0 2px; color:#333; padding-right:118px;}
+.chart-card .headline.bad{color:var(--red);}
+.chart-card .src{font-size:12.5px; color:#8b8574; margin:0 0 6px;}
+.chart-box svg{width:100%; height:auto; display:block;}
+.tag{
+  position:absolute; top:12px; right:12px; font-size:12.5px; font-weight:800; letter-spacing:.1em;
+  border-radius:6px; padding:2px 10px; transform:rotate(3deg); z-index:2;
+}
+.tag-lie{background:#fbe3e3; color:var(--red); border:2px solid var(--red);}
+.tag-true{background:#e2f4e8; color:var(--green); border:2px solid var(--green);}
+.step-title{margin:24px 0 8px; font-size:19px; display:flex; align-items:center; gap:8px;}
+.step-title .n{
+  background:var(--navy); color:var(--gold); width:28px; height:28px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center; font-size:15px; flex:none;
+}
+.choices{display:grid; gap:10px;}
+.choice{
+  text-align:left; background:#fff; border:2px solid #d8c9a0; border-radius:12px;
+  padding:13px 16px; font-size:16.5px; font-weight:600; color:var(--ink);
+  box-shadow:0 3px 0 rgba(120,95,20,.25); transition:transform .08s ease;
+}
+.choice:active{transform:scale(.99);}
+.choice:disabled{opacity:.45; cursor:default;}
+.choice.wrong-pick{border-color:var(--red); background:#fdf0f0; animation:shake .4s ease;}
+.choice.right-pick{border-color:var(--green); background:#edf8f1;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-7px);}75%{transform:translateX(7px);}}
+.feedback{margin-top:12px; border-radius:12px; padding:13px 16px; font-size:16px; font-weight:700;}
+.feedback.ng{background:#fbe3e3; color:#8f2323; border:1.5px solid #e5a3a3;}
+.feedback.ok{background:#e2f4e8; color:#14532d; border:1.5px solid #8fd0a8;}
+.explain-card{
+  margin-top:14px; background:#fffdf6; border:1.5px solid #cfe3d4; border-left:6px solid var(--green);
+  border-radius:10px; padding:14px 18px; font-size:16px; box-shadow:0 3px 10px rgba(20,80,40,.1);
+}
+.explain-card h4{margin:0 0 6px; color:var(--green); font-size:17px;}
+.explain-card .real{font-weight:800;}
+.compare-wrap{display:grid; gap:16px; margin-top:6px;}
+@media(min-width:720px){ .compare-wrap{grid-template-columns:1fr 1fr;} }
+.compare-wrap .chart-card{margin-top:0;}
+.honest-note{
+  margin-top:14px; background:#eef7f0; border:1.5px solid #bfe0cc; border-radius:10px;
+  padding:12px 16px; font-size:15.5px;
+}
+.solved-banner{
+  margin-top:20px; text-align:center; background:linear-gradient(180deg,#fff6d8,#ffe9a8);
+  border:2px solid var(--gold); border-radius:14px; padding:18px; position:relative; overflow:visible;
+}
+.solved-banner .bigstamp{
+  display:inline-block; border:4px solid var(--red); color:var(--red); border-radius:8px;
+  padding:2px 22px; font-size:26px; font-weight:800; letter-spacing:.3em; transform:rotate(-6deg);
+  background:rgba(255,255,255,.5); animation:stampIn .45s ease;
+}
+@keyframes stampIn{0%{transform:rotate(-6deg) scale(2.4); opacity:0;}60%{transform:rotate(-6deg) scale(.92); opacity:1;}100%{transform:rotate(-6deg) scale(1);}}
+.case-actions{margin-top:18px; display:flex; flex-wrap:wrap; gap:12px; justify-content:center;}
+.center{text-align:center;}
+
+/* ===== 表彰画面 ===== */
+#screen-award{
+  background:
+    radial-gradient(ellipse 90% 340px at 50% -60px, rgba(255,196,86,.34), rgba(255,196,86,0) 70%),
+    linear-gradient(180deg,#1b2340,#171d38);
+  min-height:100vh; color:#fff; padding:60px 16px; text-align:center;
+}
+.award-card{
+  max-width:560px; margin:20px auto; background:var(--paper); color:var(--ink);
+  border:3px solid var(--gold); border-radius:16px; padding:28px 22px; box-shadow:var(--shadow);
+}
+.award-card .rank{font-size:clamp(28px,6vw,40px); font-weight:800; color:#8a6d1f; margin:6px 0;}
+.award-card .pts{font-size:20px; font-weight:700;}
+
+/* ===== ワークシート オーバーレイ ===== */
+#wsOverlay{
+  position:fixed; inset:0; z-index:80; background:rgba(8,10,24,.88);
+  overflow:auto; padding:18px 12px 40px; color:#fff; text-align:center;
+}
+#wsOverlay img{
+  width:min(96vw,760px); height:auto; background:#fff; border-radius:4px;
+  box-shadow:0 10px 40px rgba(0,0,0,.6); margin:12px auto; display:block;
+}
+#wsOverlay .row{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:10px;}
+#confettiCv{position:fixed; inset:0; z-index:90; pointer-events:none;}
+.footer-note{max-width:940px;margin:34px auto 0;text-align:center;color:#8f96b8;font-size:12.5px;position:relative;z-index:2;}
+</style>
+</head>
+<body>
+<canvas id="confettiCv" class="hidden"></canvas>
+
+<header id="topbar">
+  <div class="logo"><img src="icon-180.png" alt=""><span>グラフ探偵事務所</span></div>
+  <div class="spacer"></div>
+  <div id="pointsBadge" title="探偵ポイント">🔍 <span id="pointsVal">0</span> pt</div>
+  <button class="iconbtn" id="soundBtn" type="button">🔊 音あり</button>
+</header>
+
+<!-- ============ タイトル画面 ============ -->
+<section id="screen-title">
+  <div class="lamp"><div class="wire"></div><div class="shade"><div class="bulb"></div></div></div>
+  <div class="title-inner">
+    <span class="office-sign">探 偵 事 務 所</span>
+    <h1 class="game-title serif">グラフ探偵</h1>
+    <p class="title-sub serif">― だましグラフを見破れ！ ―</p>
+    <svg class="mag-wrap" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="42" cy="42" r="26" fill="rgba(190,225,245,.25)" stroke="#e8b84b" stroke-width="7"/>
+      <rect x="30" y="52" width="9" height="24" rx="3" fill="#c63e3e" transform="rotate(18 34 60)"/>
+      <rect x="44" y="44" width="9" height="32" rx="3" fill="#3a6bc5" transform="rotate(18 48 56)"/>
+      <line x1="61" y1="61" x2="88" y2="88" stroke="#96622e" stroke-width="11" stroke-linecap="round"/>
+    </svg>
+    <p class="title-lead">世の中には、数字は正しいのに「見せ方」でだますグラフがある。<br>
+    きみの仕事は、事件ファイルのグラフを調べ、どこがおかしいか見破って、<br>正直なグラフに直すことだ。</p>
+    <br>
+    <span class="fiction-note">※ このアプリの数字は、すべて教材用の作り話です。実在の調査や統計ではありません。</span>
+  </div>
+
+  <div id="allClearBanner" class="hidden">
+    <div style="font-size:19px;font-weight:800;">🎉 全事件 解決！ きみは一人前のグラフ探偵だ</div>
+    <div style="margin-top:8px;"><button class="btn btn-gold" id="awardBtn" type="button">🏆 表彰式へ</button></div>
+  </div>
+
+  <div class="case-list" id="caseList"></div>
+
+  <div class="title-actions">
+    <button class="btn btn-gold" id="wsBtn" type="button">🖨 ワークシートを印刷する</button>
+    <button class="btn btn-ghost" id="resetBtn" type="button">記録をリセット</button>
+  </div>
+  <p class="footer-note">グラフ探偵 ― だましグラフを見破れ！／数字はすべて教材用の作り話です</p>
+</section>
+
+<!-- ============ 事件画面 ============ -->
+<section id="screen-case" class="hidden">
+  <div class="case-inner">
+    <button class="backlink" id="backBtn" type="button">← 事件ファイル一覧へもどる</button>
+    <div class="case-head">
+      <div>
+        <div class="no" id="caseNo"></div>
+        <h2 id="caseTitle" class="serif"></h2>
+      </div>
+      <span class="fiction-badge">⚠ これは教材用の作り話のデータです</span>
+    </div>
+
+    <div class="story-card">
+      <div class="who">■ 依頼人からの話</div>
+      <div id="caseStory"></div>
+    </div>
+
+    <div class="chart-card" id="trickCard">
+      <span class="tag tag-lie">容疑グラフ</span>
+      <p class="headline bad" id="trickHeadline"></p>
+      <p class="src" id="trickSrc"></p>
+      <div class="chart-box" id="trickChart"></div>
+    </div>
+
+    <h3 class="step-title"><span class="n">1</span>どこが おかしい？</h3>
+    <div class="choices" id="choices"></div>
+    <div id="feedback"></div>
+
+    <div id="afterSolve" class="hidden">
+      <div class="explain-card">
+        <h4>🔍 探偵の解説</h4>
+        <div id="explainText"></div>
+      </div>
+      <h3 class="step-title"><span class="n">2</span>正直グラフに直して、比べよう</h3>
+      <div class="center" id="fixBtnWrap">
+        <button class="btn btn-green" id="fixBtn" type="button">✏️ 正直グラフに直す</button>
+      </div>
+      <div id="compareArea" class="hidden">
+        <div class="compare-wrap">
+          <div class="chart-card">
+            <span class="tag tag-lie">うその見え方</span>
+            <p class="headline bad" id="miniTrickHeadline" style="font-size:17px;"></p>
+            <div class="chart-box" id="miniTrickChart"></div>
+          </div>
+          <div class="chart-card">
+            <span class="tag tag-true">正直グラフ</span>
+            <p class="headline" id="honestHeadline" style="font-size:17px;color:var(--green);"></p>
+            <div class="chart-box" id="honestChart"></div>
+          </div>
+        </div>
+        <div class="honest-note" id="honestNote"></div>
+      </div>
+      <div class="solved-banner hidden" id="solvedBanner">
+        <span class="bigstamp">解決</span>
+        <div style="margin-top:10px;font-weight:700;" id="solvedMsg"></div>
+      </div>
+      <div class="case-actions">
+        <button class="btn btn-navy" id="toListBtn" type="button">事件ファイル一覧へ</button>
+        <button class="btn btn-gold hidden" id="nextCaseBtn" type="button">次の事件へ →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 表彰画面 ============ -->
+<section id="screen-award" class="hidden">
+  <span class="office-sign">表 彰 式</span>
+  <div class="award-card">
+    <div style="font-size:44px;">🏆</div>
+    <div>グラフ探偵の称号</div>
+    <div class="rank serif" id="rankName"></div>
+    <div class="pts">探偵ポイント <span id="awardPts"></span> pt ／ 400 pt</div>
+    <p id="rankMsg" style="margin:12px 0 4px;"></p>
+  </div>
+  <button class="btn btn-gold" id="awardBackBtn" type="button">事件ファイル一覧へもどる</button>
+</section>
+
+<!-- ============ ワークシート表示 ============ -->
+<div id="wsOverlay" class="hidden">
+  <div style="font-weight:800;font-size:18px;">ワークシート（A4縦・1枚）</div>
+  <div id="wsHint" style="font-size:14px;color:#d8dcea;"></div>
+  <img id="wsImg" alt="グラフ探偵ワークシート">
+  <div class="row">
+    <button class="btn btn-gold hidden" id="wsShareBtn" type="button">📤 共有して印刷・保存</button>
+    <button class="btn btn-ghost" id="wsCloseBtn" type="button">閉じる</button>
+  </div>
+</div>
+</div>
+<div id="selftest-results" style="display:none"></div>
+<script>
+"use strict";
+/* ================= 音（WebAudio） ================= */
+let AC=null, soundOn = (localStorage.getItem('gt-sound')!=='off');
+function ac(){
+  if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } }
+  if(AC && AC.state==='suspended'){ AC.resume(); }
+  return AC;
+}
+function tone(freq, delay, dur, type, vol, slideTo){
+  if(!soundOn) return;
+  const c=ac(); if(!c) return;
+  try{
+    const t0=c.currentTime+delay;
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type||'sine';
+    o.frequency.setValueAtTime(freq, t0);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0+dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol||0.15, t0+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t0); o.stop(t0+dur+0.05);
+  }catch(e){}
+}
+const sndClick = ()=>tone(740,0,0.07,'triangle',0.09);
+const sndWrong = ()=>{ tone(185,0,0.26,'sawtooth',0.07,120); };
+const sndFanfare = ()=>{
+  [523,659,784,1047].forEach((f,i)=>tone(f,i*0.11,0.22,'triangle',0.15));
+  tone(1319,0.46,0.42,'triangle',0.15); tone(262,0.46,0.42,'sine',0.09);
+};
+const sndStamp = ()=>{ tone(96,0,0.18,'sine',0.28,52); tone(1200,0,0.03,'square',0.03); };
+
+/* ================= 記録 ================= */
+const LSKEY='graph-tantei-v1';
+let store={solved:{}, earned:{}};
+try{ const s=JSON.parse(localStorage.getItem(LSKEY)||'null'); if(s && s.solved) store=s; }catch(e){}
+function saveStore(){ try{ localStorage.setItem(LSKEY, JSON.stringify(store)); }catch(e){} }
+function totalPoints(){ return Object.values(store.earned).reduce((a,b)=>a+b,0); }
+
+/* ================= 事件データ ================= */
+const COLORS=['#e2483d','#3a6bc5','#f0a13c','#57a773','#8e6cc8'];
+const CASES=[
+{
+  id:'case1', no:1, title:'消えた「0」の事件', chart:'bar',
+  teaser:'ポスターの棒グラフ。6月は4月の3倍に見えるけれど…？',
+  story:'さくら小学校の保健室の先生から依頼が来た。「朝ごはんを食べよう」というポスターを見た子が、<b>「6月は4月の3倍もふえた！」</b>と言っているそうだ。数字そのものは合っているはずなのに、なんだかへんだ。グラフを調べてほしい。',
+  src:'出典：さくら小学校「あさごはん大さくせん」ポスター（作り話）',
+  headline:'6月は大はんせい！ 朝ごはんを食べる人が ぐーんと ふえた！？',
+  honestHeadline:'正直グラフ： 少しずつ ふえている',
+  labels:['4月','5月','6月'], values:[84,88,92], unit:'%',
+  trick:{yMin:80, yMax:95, ticks:[80,85,90,95]},
+  honest:{yMin:0, yMax:100, ticks:[0,20,40,60,80,100]},
+  choices:[
+    '棒の色が、3本とも ちがうから',
+    '縦軸が 0 から 始まっていないから',
+    '6月の棒が、いちばん 高いから'
+  ],
+  answer:1,
+  hint:'ヒント：棒の高さではなく、左側の「軸の数字」をよく見てみよう。',
+  explain:function(){
+    return '犯人は<b>縦軸の始まり</b>だ。このグラフの縦軸は <span class="real">0% ではなく 80% から</span>始まっている。'
+      +'だから棒の見た目の高さは、4月が 84−80＝4、5月が 8、6月が 12 の比になり、<span class="real">1：2：3</span> に見えてしまう。'
+      +'でも本当の割合は 84% → 92% で、差は <span class="real">8ポイント</span>。92 ÷ 84 ≒ <span class="real">1.1倍</span> にすぎない。'
+      +'「3倍」は見た目のだましだった。';
+  },
+  honestNote:'棒グラフの縦軸は <b>0 から始める</b>のが約束です。0から描くと、84%・88%・92% と、少しずつ増えていることが正しく伝わります。'
+},
+{
+  id:'case2', no:2, title:'切り取られた1年の事件', chart:'line',
+  teaser:'広告の折れ線グラフ。「急上昇」の正体は…？',
+  story:'駅前の「ほしぞら商店」から依頼が来た。お店は広告に「来客数、急上昇中！！」と書いたのだが、お客さんから<b>「本当はそんなに増えていないのでは？」</b>と言われたそうだ。広告のグラフが正しいかどうか、調べてほしい。',
+  src:'出典：ほしぞら商店の広告チラシ（作り話）',
+  headline:'来客数、急上昇中！！',
+  honestHeadline:'正直グラフ： 1年を通すと ほぼ横ばい',
+  labels:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+  values:[302,298,305,300,297,303,299,296,301,306,312,318], unit:'人',
+  trickIdx:[9,10,11],
+  trick:{yMin:290, yMax:320, ticks:[290,295,300,305,310,315,320]},
+  honest:{yMin:0, yMax:350, ticks:[0,50,100,150,200,250,300,350]},
+  choices:[
+    '最後の 3か月だけを 切り取って 見せているから',
+    '点と点が、線で つながっているから',
+    '12月の来客数が、いちばん 多いから'
+  ],
+  answer:0,
+  hint:'ヒント：この折れ線は「何月から何月まで」を見せているかな？ 1年は12か月あるはずだね。',
+  explain:function(){
+    return '犯人は<b>期間の切り取り</b>だ。広告は <span class="real">10月・11月・12月の3か月だけ</span>を切り取って見せていた。'
+      +'1年分ぜんぶを見ると、来客数は 296人〜318人の間を行ったり来たりで、1月の302人 → 12月の318人、'
+      +'つまり <span class="real">約1.05倍</span> のゆるやかな増え方だ。'
+      +'おまけに縦軸も290人から始まっているので、坂がよけいに急に見える。二重の手口だった。';
+  },
+  honestNote:'グラフの期間は、<b>全体を見せる</b>のが約束です。1年分を 0 から描くと、「急上昇」ではなく「ほぼ横ばい（ゆるやかな増）」だと分かります。'
+},
+{
+  id:'case3', no:3, title:'ふくらんだ りんごの事件', chart:'picto',
+  teaser:'ポスターのりんごの絵。2倍のはずが4倍に…？',
+  story:'りんご祭りの実行委員から依頼が来た。B農園のポスターを見た人が、<b>「B農園は A農園の 4倍も とれたのか！」</b>と驚いているそうだ。収穫量は A農園が 100kg、B農園が 200kg のはず。ポスターの絵を調べてほしい。',
+  src:'出典：りんご祭り B農園のポスター（作り話）',
+  headline:'B農園、大豊作！ 収穫量は A農園の 2倍！',
+  honestHeadline:'正直グラフ： りんご1つ分 ＝ 50kg で数える',
+  farms:[{name:'A農園', kg:100},{name:'B農園', kg:200}],
+  unit:'kg', unitPerIcon:50,
+  choices:[
+    'りんごの絵が、数えにくいから',
+    'A農園の りんごが 小さいから',
+    'Bの絵は 高さも幅も 2倍で、面積が 4倍に なっているから'
+  ],
+  answer:2,
+  hint:'ヒント：Bのりんごは、Aのりんごより「高さ」が何倍？ 「幅」は何倍？ すると「面積」は…？',
+  explain:function(){
+    return '犯人は<b>絵の面積</b>だ。B農園は収穫量が2倍だから、ポスターは りんごの絵の<b>高さを2倍</b>にした。'
+      +'ところが幅もいっしょに2倍になったので、面積は <span class="real">2 × 2 ＝ 4倍</span> になってしまった。'
+      +'人の目は、絵の「大きさ（面積）」で量を感じ取る。だから本当は2倍なのに、<span class="real">4倍に見えて</span>しまうのだ。';
+  },
+  honestNote:'絵で量を表すときは、<b>同じ大きさの絵を「個数」で並べる</b>のが約束です。りんご1つ分＝50kg と決めれば、A農園は2つ、B農園は4つで、ちょうど2倍が正しく伝わります。'
+},
+{
+  id:'case4', no:4, title:'100%を こえた円の事件', chart:'pie',
+  teaser:'円グラフの割合を全部たすと…115%！？',
+  story:'給食委員会から依頼が来た。「好きな給食メニュー」の円グラフを掲示したら、<b>「割合を全部たすと 100%をこえてるよ？」</b>と指摘されたそうだ。200人に聞いたアンケートで、好きなメニューは<b>いくつ選んでもよい（複数回答OK）</b>だったという。円グラフを調べてほしい。',
+  src:'出典：給食委員会の掲示ポスター（作り話）',
+  headline:'みんなの好きな給食メニュー（200人に聞きました）',
+  honestHeadline:'正直グラフ： 割合を計算し直すと 合計100%',
+  items:[
+    {label:'カレー', count:80},
+    {label:'ラーメン', count:60},
+    {label:'パン', count:50},
+    {label:'サラダ', count:40}
+  ],
+  respondents:200,
+  choices:[
+    '円グラフが 大きすぎるから',
+    '割合を 全部たすと、100%を こえているから',
+    '好きなメニューが 4つ あるから'
+  ],
+  answer:1,
+  hint:'ヒント：カレー40%・ラーメン30%・パン25%・サラダ20%。全部たすと何%になる？',
+  explain:function(){
+    return '犯人は<b>割合の計算のしかた</b>だ。このアンケートは複数回答OKで、答えは のべ <span class="real">230件</span> 集まった。'
+      +'ところが割合を「200人」で割ってしまったので、カレー 40%・ラーメン 30%・パン 25%・サラダ 20%、'
+      +'合計は <span class="real">115%</span> になってしまった。円グラフは「全体＝100% を分け合う」グラフだから、これはおかしい。'
+      +'割合は のべ230件を全体として計算し直すのが正解だ（カレー 80÷230 ≒ 34.8%）。';
+  },
+  honestNote:'割合を <b>のべ回答数230件</b> で計算し直すと、カレー34.8%・ラーメン26.1%・パン21.7%・サラダ17.4% で、合計は100%になります。なお複数回答のアンケートは、円グラフより棒グラフの方が向いています。'
+}
+];
+/* ================= グラフ描画（すべてデータから生成） ================= */
+const SVGW=640, SVGH=430, ML=74, MR=18, MT=36, MB=56;
+const PW=SVGW-ML-MR, PH=SVGH-MT-MB;
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function yPix(v, cfg){ return MT+PH - (v-cfg.yMin)/(cfg.yMax-cfg.yMin)*PH; }
+function axisBase(cfg){
+  let s='';
+  cfg.ticks.forEach(t=>{
+    const y=yPix(t,cfg);
+    s+='<line x1="'+ML+'" y1="'+y+'" x2="'+(ML+PW)+'" y2="'+y+'" stroke="#e7dfc9" stroke-width="1"/>';
+    s+='<text x="'+(ML-8)+'" y="'+(y+5)+'" text-anchor="end" font-size="15" fill="#77705c">'+t+'</text>';
+  });
+  s+='<line x1="'+ML+'" y1="'+MT+'" x2="'+ML+'" y2="'+(MT+PH)+'" stroke="#999" stroke-width="1.6"/>';
+  const baseW = cfg.yMin===0 ? 3.4 : 1.6;
+  s+='<line x1="'+ML+'" y1="'+(MT+PH)+'" x2="'+(ML+PW)+'" y2="'+(MT+PH)+'" stroke="#666" stroke-width="'+baseW+'"/>';
+  return s;
+}
+function barChartSVG(labels, values, unit, cfg){
+  let s='<svg viewBox="0 0 '+SVGW+' '+SVGH+'" role="img" aria-label="棒グラフ">';
+  s+=axisBase(cfg);
+  if(cfg.yMin===0){
+    s+='<text x="'+(ML+PW-2)+'" y="'+(MT+PH+26)+'" text-anchor="end" font-size="13" fill="#2e8b57" font-weight="700">↑0から</text>';
+  }
+  const slot=PW/labels.length, bw=Math.min(100, slot*0.52);
+  labels.forEach((lb,i)=>{
+    const cx=ML+slot*i+slot/2, v=values[i], y=yPix(v,cfg);
+    s+='<rect x="'+(cx-bw/2)+'" y="'+y+'" width="'+bw+'" height="'+(MT+PH-y)+'" rx="5" fill="'+COLORS[i%COLORS.length]+'"/>';
+    s+='<text x="'+cx+'" y="'+(y-9)+'" text-anchor="middle" font-size="18" font-weight="700" fill="#333">'+v+esc(unit)+'</text>';
+    s+='<text x="'+cx+'" y="'+(MT+PH+26)+'" text-anchor="middle" font-size="17" fill="#444">'+esc(lb)+'</text>';
+  });
+  return s+'</svg>';
+}
+function lineChartSVG(labels, values, unit, cfg){
+  let s='<svg viewBox="0 0 '+SVGW+' '+SVGH+'" role="img" aria-label="折れ線グラフ">';
+  s+=axisBase(cfg);
+  const n=labels.length, slot=PW/n;
+  const pts=values.map((v,i)=>[ML+slot*i+slot/2, yPix(v,cfg)]);
+  s+='<polyline points="'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'" fill="none" stroke="#c63e3e" stroke-width="3.6" stroke-linejoin="round"/>';
+  pts.forEach((p,i)=>{
+    s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="6.5" fill="#fff" stroke="#c63e3e" stroke-width="3.2"/>';
+    s+='<text x="'+p[0]+'" y="'+(p[1]-14)+'" text-anchor="middle" font-size="15" font-weight="700" fill="#333">'+values[i]+'</text>';
+    s+='<text x="'+p[0]+'" y="'+(MT+PH+26)+'" text-anchor="middle" font-size="'+(n>6?13.5:17)+'" fill="#444">'+esc(labels[i])+'</text>';
+  });
+  return s+'</svg>';
+}
+function polar(cx, cy, r, angDeg){
+  const a=(angDeg-90)*Math.PI/180;
+  return [cx+r*Math.cos(a), cy+r*Math.sin(a)];
+}
+function pieChartSVG(items, pcts){
+  const total=items.reduce((a,it)=>a+it.count,0);
+  const cx=232, cy=212, r=150;
+  let s='<svg viewBox="0 0 '+SVGW+' '+SVGH+'" role="img" aria-label="円グラフ">';
+  let ang=0;
+  items.forEach((it,i)=>{
+    const frac=it.count/total, sweep=frac*360;
+    const p1=polar(cx,cy,r,ang), p2=polar(cx,cy,r,ang+sweep);
+    const large = sweep>180?1:0;
+    s+='<path d="M'+cx+','+cy+' L'+p1[0].toFixed(1)+','+p1[1].toFixed(1)+' A'+r+','+r+' 0 '+large+' 1 '+p2[0].toFixed(1)+','+p2[1].toFixed(1)+' Z" fill="'+COLORS[i%COLORS.length]+'" stroke="#fff" stroke-width="2.5"/>';
+    ang+=sweep;
+  });
+  items.forEach((it,i)=>{
+    const ly=120+i*62;
+    s+='<rect x="416" y="'+(ly-17)+'" width="19" height="19" rx="4" fill="'+COLORS[i%COLORS.length]+'"/>';
+    s+='<text x="444" y="'+(ly-1)+'" font-size="18" fill="#333">'+esc(it.label)+' <tspan font-weight="700">'+pcts[i]+'%</tspan></text>';
+  });
+  return s+'</svg>';
+}
+function applePath(){
+  return 'M60 34 C50 15 22 17 17 45 C12 74 34 112 60 110 C86 112 108 74 103 45 C98 17 70 15 60 34 Z';
+}
+function appleGroup(x, baseY, s, label, sub){
+  let g='<g transform="translate('+(x-60*s)+','+(baseY-124*s)+') scale('+s+')">';
+  g+='<path d="'+applePath()+'" fill="#e2483d"/>';
+  g+='<ellipse cx="38" cy="52" rx="11" ry="17" fill="rgba(255,255,255,.35)"/>';
+  g+='<rect x="56.5" y="0" width="7" height="21" rx="3.5" fill="#7a4f22"/>';
+  g+='<ellipse cx="79" cy="11" rx="15" ry="7.5" fill="#57a773" transform="rotate(-24 79 11)"/>';
+  g+='</g>';
+  g+='<text x="'+x+'" y="'+(baseY+30)+'" text-anchor="middle" font-size="18" font-weight="700" fill="#333">'+esc(label)+'</text>';
+  if(sub) g+='<text x="'+x+'" y="'+(baseY+56)+'" text-anchor="middle" font-size="16" fill="#555">'+esc(sub)+'</text>';
+  return g;
+}
+function pictoTrickSVG(c){
+  const a=c.farms[0], b=c.farms[1];
+  let s='<svg viewBox="0 0 '+SVGW+' '+SVGH+'" role="img" aria-label="絵グラフ">';
+  s+='<line x1="36" y1="372" x2="604" y2="372" stroke="#666" stroke-width="2.4"/>';
+  s+=appleGroup(185, 372, 0.95, a.name, a.kg+'kg');
+  s+=appleGroup(448, 372, 1.9, b.name, b.kg+'kg');
+  return s+'</svg>';
+}
+function pictoHonestSVG(c){
+  let s='<svg viewBox="0 0 '+SVGW+' '+SVGH+'" role="img" aria-label="個数で表した絵グラフ">';
+  s+='<text x="320" y="52" text-anchor="middle" font-size="19" font-weight="700" fill="#2e8b57">りんご 1つ分 ＝ '+c.unitPerIcon+'kg</text>';
+  c.farms.forEach((f,row)=>{
+    const yBase=190+row*150;
+    s+='<text x="26" y="'+(yBase-38)+'" font-size="19" font-weight="700" fill="#333">'+esc(f.name)+'</text>';
+    const n=Math.round(f.kg/c.unitPerIcon);
+    for(let i=0;i<n;i++){
+      s+='<g transform="translate('+(140+i*82)+','+(yBase-78)+') scale(0.6)">';
+      s+='<path d="'+applePath()+'" fill="#e2483d"/>';
+      s+='<ellipse cx="38" cy="52" rx="11" ry="17" fill="rgba(255,255,255,.35)"/>';
+      s+='<rect x="56.5" y="0" width="7" height="21" rx="3.5" fill="#7a4f22"/>';
+      s+='<ellipse cx="79" cy="11" rx="15" ry="7.5" fill="#57a773" transform="rotate(-24 79 11)"/>';
+      s+='</g>';
+    }
+    s+='<text x="'+(140+n*82+8)+'" y="'+(yBase-38)+'" font-size="19" font-weight="700" fill="#333">＝ '+f.kg+'kg</text>';
+  });
+  return s+'</svg>';
+}
+function renderChart(c, mode){
+  const honest = (mode==='honest');
+  const cfg = honest ? c.honest : c.trick;
+  if(c.chart==='bar') return barChartSVG(c.labels, c.values, c.unit, cfg);
+  if(c.chart==='line'){
+    if(honest) return lineChartSVG(c.labels, c.values, c.unit, cfg);
+    const ls=c.trickIdx.map(i=>c.labels[i]), vs=c.trickIdx.map(i=>c.values[i]);
+    return lineChartSVG(ls, vs, c.unit, cfg);
+  }
+  if(c.chart==='picto') return honest ? pictoHonestSVG(c) : pictoTrickSVG(c);
+  if(c.chart==='pie'){
+    const denom = honest ? c.items.reduce((a,it)=>a+it.count,0) : c.respondents;
+    const pcts = c.items.map(it=>{
+      const p=it.count/denom*100;
+      return (Math.round(p*10)/10).toString().replace(/\.0$/,'');
+    });
+    return pieChartSVG(c.items, pcts);
+  }
+  return '';
+}
+/* ================= 画面と進行 ================= */
+const $=id=>document.getElementById(id);
+let current=null, firstTry=true;
+function showScreen(name){
+  ['screen-title','screen-case','screen-award'].forEach(id=>$(id).classList.toggle('hidden', id!==name));
+  window.scrollTo(0,0);
+}
+function updatePoints(){ $('pointsVal').textContent=totalPoints(); }
+function renderCaseList(){
+  const wrap=$('caseList'); wrap.innerHTML='';
+  CASES.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.type='button'; btn.className='case-file'; btn.dataset.caseId=c.id;
+    const solved=!!store.solved[c.id];
+    btn.innerHTML='<div class="no">事件ファイル No.'+c.no+'</div>'
+      +'<span class="stamp '+(solved?'':'unsolved')+'">'+(solved?'解決済':'未解決')+'</span>'
+      +'<h3 class="serif">'+esc(c.title)+'</h3>'
+      +'<p class="teaser">'+esc(c.teaser)+'</p>'
+      +(solved?'<div class="earn">獲得ポイント：'+(store.earned[c.id]||0)+' pt</div>':'<div class="earn">探偵ポイント：100 pt</div>');
+    btn.addEventListener('click', ()=>{ sndClick(); openCase(c.id); });
+    wrap.appendChild(btn);
+  });
+  const allSolved = CASES.every(c=>store.solved[c.id]);
+  $('allClearBanner').classList.toggle('hidden', !allSolved);
+  updatePoints();
+}
+function openCase(id){
+  current=CASES.find(c=>c.id===id); firstTry=true;
+  const c=current;
+  $('caseNo').textContent='事件ファイル No.'+c.no;
+  $('caseTitle').textContent=c.title;
+  $('caseStory').innerHTML=c.story;
+  $('trickHeadline').textContent=c.headline;
+  $('trickSrc').textContent=c.src+'／数字は教材用の作り話です';
+  $('trickChart').innerHTML=renderChart(c,'trick');
+  $('feedback').innerHTML='';
+  $('afterSolve').classList.add('hidden');
+  $('compareArea').classList.add('hidden');
+  $('fixBtnWrap').classList.remove('hidden');
+  $('solvedBanner').classList.add('hidden');
+  const ch=$('choices'); ch.innerHTML='';
+  const solvedBefore=!!store.solved[c.id];
+  c.choices.forEach((txt,i)=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='choice'; b.textContent=txt; b.dataset.idx=i;
+    if(solvedBefore){
+      b.disabled=true;
+      if(i===c.answer) b.classList.add('right-pick');
+    }else{
+      b.addEventListener('click', ()=>pickChoice(i,b));
+    }
+    ch.appendChild(b);
+  });
+  if(solvedBefore) showSolved(false);
+  const idx=CASES.indexOf(c);
+  $('nextCaseBtn').classList.toggle('hidden', !(idx<CASES.length-1));
+  showScreen('screen-case');
+}
+function pickChoice(i, btn){
+  const c=current; if(!c || store.solved[c.id]) return;
+  if(i===c.answer){
+    btn.classList.add('right-pick');
+    document.querySelectorAll('.choice').forEach(b=>{ b.disabled=true; });
+    const earned = store.earned[c.id] || (firstTry?100:50);
+    store.solved[c.id]=true; store.earned[c.id]=earned; saveStore(); updatePoints();
+    $('feedback').innerHTML='<div class="feedback ok">🎉 見破った！ その通り。これが手口だ。</div>';
+    sndFanfare(); spawnConfetti(90);
+    showSolved(true);
+  }else{
+    btn.classList.add('wrong-pick'); btn.disabled=true; firstTry=false;
+    $('feedback').innerHTML='<div class="feedback ng">うーん、それは手口ではないようだ。<br>'+esc(c.hint)+'</div>';
+    sndWrong();
+  }
+}
+function showSolved(animate){
+  const c=current;
+  $('explainText').innerHTML = (typeof c.explain==='function') ? c.explain() : c.explain;
+  $('afterSolve').classList.remove('hidden');
+  $('solvedMsg').textContent='探偵ポイント +'+(store.earned[c.id]||0)+'pt を手に入れた！';
+  if(animate){
+    setTimeout(()=>{ $('afterSolve').scrollIntoView({behavior:'smooth', block:'start'}); }, 350);
+  }
+}
+$('fixBtn').addEventListener('click', ()=>{
+  const c=current; if(!c) return;
+  $('miniTrickHeadline').textContent=c.headline;
+  $('miniTrickChart').innerHTML=renderChart(c,'trick');
+  $('honestHeadline').textContent=c.honestHeadline;
+  $('honestChart').innerHTML=renderChart(c,'honest');
+  $('honestNote').innerHTML=c.honestNote;
+  $('compareArea').classList.remove('hidden');
+  $('fixBtnWrap').classList.add('hidden');
+  $('solvedBanner').classList.remove('hidden');
+  sndStamp(); spawnConfetti(50);
+  setTimeout(()=>{ $('compareArea').scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
+});
+$('backBtn').addEventListener('click', ()=>{ sndClick(); renderCaseList(); showScreen('screen-title'); });
+$('toListBtn').addEventListener('click', ()=>{ sndClick(); renderCaseList(); showScreen('screen-title'); });
+$('nextCaseBtn').addEventListener('click', ()=>{
+  const idx=CASES.indexOf(current);
+  if(idx<CASES.length-1){ sndClick(); openCase(CASES[idx+1].id); }
+});
+$('awardBtn').addEventListener('click', ()=>{
+  const p=totalPoints();
+  let rank, msg;
+  if(p>=400){ rank='伝説の名探偵'; msg='全事件を一発で見破った！ 軸・期間・面積・割合、どんな手口もきみの目からは逃げられない。'; }
+  else if(p>=300){ rank='名探偵'; msg='見事な推理だった。これからグラフを見るときは、まず軸と期間をチェックだ。'; }
+  else if(p>=200){ rank='一人前探偵'; msg='全事件を解決！ まちがえた事件をもう一度見直すと、もっと目が鍛えられるよ。'; }
+  else { rank='見習い探偵'; msg='全事件を解決！ 事件ファイルをもう一度開いて復習すると、ポイントを取り直せる。'; }
+  $('rankName').textContent=rank; $('awardPts').textContent=p; $('rankMsg').textContent=msg;
+  sndFanfare(); spawnConfetti(140);
+  showScreen('screen-award');
+});
+$('awardBackBtn').addEventListener('click', ()=>{ sndClick(); renderCaseList(); showScreen('screen-title'); });
+$('resetBtn').addEventListener('click', ()=>{
+  if(confirm('解決の記録と探偵ポイントを、すべて消してよいですか？')){
+    store={solved:{}, earned:{}}; saveStore(); renderCaseList();
+  }
+});
+function syncSoundBtn(){ $('soundBtn').textContent = soundOn ? '🔊 音あり' : '🔇 音なし'; }
+$('soundBtn').addEventListener('click', ()=>{
+  soundOn=!soundOn;
+  try{ localStorage.setItem('gt-sound', soundOn?'on':'off'); }catch(e){}
+  syncSoundBtn(); if(soundOn) sndClick();
+});
+
+/* ================= 紙吹雪 ================= */
+const cv=$('confettiCv'), cx2=cv.getContext('2d');
+let confetti=[], confettiRunning=false;
+function spawnConfetti(n){
+  cv.width=window.innerWidth; cv.height=window.innerHeight;
+  cv.classList.remove('hidden');
+  const cols=['#e8b84b','#c63e3e','#3a6bc5','#57a773','#f0a13c','#fff2c4'];
+  for(let i=0;i<n;i++){
+    confetti.push({
+      x:Math.random()*cv.width, y:-20-Math.random()*cv.height*0.35,
+      w:6+Math.random()*7, h:8+Math.random()*9,
+      vy:2.2+Math.random()*3.2, vx:-1.4+Math.random()*2.8,
+      rot:Math.random()*Math.PI, vr:-0.12+Math.random()*0.24,
+      col:cols[i%cols.length]
+    });
+  }
+  if(!confettiRunning){ confettiRunning=true; requestAnimationFrame(confettiTick); }
+}
+function confettiTick(){
+  cx2.clearRect(0,0,cv.width,cv.height);
+  confetti=confetti.filter(p=>p.y<cv.height+30);
+  confetti.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+    cx2.save(); cx2.translate(p.x,p.y); cx2.rotate(p.rot);
+    cx2.fillStyle=p.col; cx2.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    cx2.restore();
+  });
+  if(confetti.length>0){ requestAnimationFrame(confettiTick); }
+  else{ confettiRunning=false; cv.classList.add('hidden'); }
+}
+/* ================= ワークシート（A4縦・300dpi画像） ================= */
+let wsCanvas=null, wsDataURL=null, wsBlob=null;
+function buildWorksheet(){
+  const W=2480, H=3508, k=W/210;
+  const mm=v=>v*k;
+  const cvEl=document.createElement('canvas'); cvEl.width=W; cvEl.height=H;
+  const g=cvEl.getContext('2d');
+  const F=(px,bold)=>((bold?'bold ':'')+px+'px "Hiragino Kaku Gothic ProN","Noto Sans CJK JP",sans-serif');
+  g.fillStyle='#ffffff'; g.fillRect(0,0,W,H);
+  g.textBaseline='alphabetic';
+  // ヘッダー帯
+  g.fillStyle='#1b2340'; g.fillRect(0,0,W,mm(24));
+  g.fillStyle='#e8b84b'; g.font=F(92,true); g.textAlign='left';
+  g.fillText('グラフ探偵ワークシート', mm(13), mm(16.5));
+  g.fillStyle='#ffffff'; g.font=F(40); g.textAlign='right';
+  g.fillText('だましグラフを見破ろう', W-mm(13), mm(16));
+  // なまえ
+  g.fillStyle='#2b2b33'; g.font=F(52,true); g.textAlign='left';
+  g.fillText('だましグラフを 見破ろう！', mm(13), mm(34));
+  g.font=F(48); g.textAlign='right';
+  g.fillText('なまえ：', W-mm(78), mm(34));
+  g.strokeStyle='#555'; g.lineWidth=3;
+  g.beginPath(); g.moveTo(W-mm(76), mm(35.5)); g.lineTo(W-mm(13), mm(35.5)); g.stroke();
+  g.fillStyle='#c63e3e'; g.font=F(38); g.textAlign='left';
+  g.fillText('※ 数字は すべて 教材用の 作り話です。実在の調査ではありません。', mm(13), mm(43));
+
+  function probBand(y, text){
+    g.fillStyle='#efe3c2'; g.fillRect(mm(13), mm(y), mm(184), mm(9.5));
+    g.fillStyle='#8a6d1f'; g.fillRect(mm(13), mm(y), mm(2.2), mm(9.5));
+    g.fillStyle='#3a2f10'; g.font=F(50,true); g.textAlign='left';
+    g.fillText(text, mm(18), mm(y+7.2));
+  }
+  function writeLines(x, y, w, n, gap){
+    g.strokeStyle='#b9ac8d'; g.lineWidth=2.4;
+    for(let i=0;i<n;i++){
+      g.beginPath(); g.moveTo(mm(x), mm(y+i*gap)); g.lineTo(mm(x+w), mm(y+i*gap)); g.stroke();
+    }
+  }
+  function qText(x, y){
+    g.fillStyle='#c63e3e'; g.font=F(44,true); g.textAlign='left';
+    g.fillText('Q. おかしいところは？', mm(x), mm(y));
+  }
+  function wsBar(box, labels, values, unit, cfg){
+    const x0=mm(box.x)+mm(13), x1=mm(box.x+box.w), yT=mm(box.y)+mm(3), yB=mm(box.y+box.h)-mm(9);
+    const yP=v=>yB-(v-cfg.yMin)/(cfg.yMax-cfg.yMin)*(yB-yT);
+    g.font=F(38); g.textAlign='right';
+    cfg.ticks.forEach(t=>{
+      const y=yP(t);
+      g.strokeStyle='#e3dcc6'; g.lineWidth=2;
+      g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+      g.fillStyle='#666'; g.fillText(String(t), x0-mm(2), y+mm(1.6));
+    });
+    g.strokeStyle='#666'; g.lineWidth=3.4;
+    g.beginPath(); g.moveTo(x0, yT-mm(2)); g.lineTo(x0, yB); g.lineTo(x1, yB); g.stroke();
+    const slot=(x1-x0)/labels.length, bw=Math.min(mm(15), slot*0.52);
+    labels.forEach((lb,i)=>{
+      const cxp=x0+slot*i+slot/2, y=yP(values[i]);
+      g.fillStyle=COLORS[i%COLORS.length];
+      g.fillRect(cxp-bw/2, y, bw, yB-y);
+      g.fillStyle='#333'; g.font=F(42,true); g.textAlign='center';
+      g.fillText(values[i]+unit, cxp, y-mm(2.2));
+      g.font=F(40); g.fillText(lb, cxp, yB+mm(7));
+    });
+  }
+  function wsLine(box, labels, values, cfg){
+    const x0=mm(box.x)+mm(13), x1=mm(box.x+box.w), yT=mm(box.y)+mm(5), yB=mm(box.y+box.h)-mm(9);
+    const yP=v=>yB-(v-cfg.yMin)/(cfg.yMax-cfg.yMin)*(yB-yT);
+    g.font=F(38); g.textAlign='right';
+    cfg.ticks.forEach(t=>{
+      const y=yP(t);
+      g.strokeStyle='#e3dcc6'; g.lineWidth=2;
+      g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+      g.fillStyle='#666'; g.fillText(String(t), x0-mm(2), y+mm(1.6));
+    });
+    g.strokeStyle='#666'; g.lineWidth=3.4;
+    g.beginPath(); g.moveTo(x0, yT-mm(2)); g.lineTo(x0, yB); g.lineTo(x1, yB); g.stroke();
+    const slot=(x1-x0)/labels.length;
+    const pts=values.map((v,i)=>[x0+slot*i+slot/2, yP(v)]);
+    g.strokeStyle='#c63e3e'; g.lineWidth=5.4; g.lineJoin='round';
+    g.beginPath(); pts.forEach((p,i)=>{ i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]); }); g.stroke();
+    pts.forEach((p,i)=>{
+      g.fillStyle='#fff'; g.strokeStyle='#c63e3e'; g.lineWidth=4.6;
+      g.beginPath(); g.arc(p[0], p[1], 9, 0, Math.PI*2); g.fill(); g.stroke();
+      g.fillStyle='#333'; g.font=F(40,true); g.textAlign='center';
+      g.fillText(String(values[i]), p[0], p[1]-mm(4.4));
+      g.font=F(38); g.fillText(labels[i], p[0], yB+mm(7));
+    });
+  }
+  function gridBox(box, ticks, xlabels){
+    const x=mm(box.x), y=mm(box.y), w=mm(box.w), h=mm(box.h);
+    const x0=x+mm(11), x1=x+w-mm(1.5), yT=y+mm(2.5), yB=y+h-mm(8);
+    const yMin=ticks[0], yMax=ticks[ticks.length-1];
+    const yP=v=>yB-(v-yMin)/(yMax-yMin)*(yB-yT);
+    g.strokeStyle='#c9cfda'; g.lineWidth=1.6;
+    ticks.forEach(t=>{
+      const yy=yP(t);
+      g.beginPath(); g.moveTo(x0, yy); g.lineTo(x1, yy); g.stroke();
+      g.fillStyle='#555'; g.font=F(34); g.textAlign='right';
+      g.fillText(String(t), x0-mm(1.6), yy+mm(1.4));
+    });
+    const slot=(x1-x0)/xlabels.length;
+    g.strokeStyle='#dde1ea';
+    for(let i=1;i<xlabels.length;i++){
+      g.beginPath(); g.moveTo(x0+slot*i, yT); g.lineTo(x0+slot*i, yB); g.stroke();
+    }
+    g.font=F(34); g.textAlign='center'; g.fillStyle='#444';
+    xlabels.forEach((lb,i)=>{ g.fillText(lb, x0+slot*i+slot/2, yB+mm(6.4)); });
+    g.strokeStyle='#444'; g.lineWidth=3.6;
+    g.strokeRect(x0, yT, x1-x0, yB-yT);
+  }
+
+  const c1=CASES[0], c2=CASES[1];
+  /* ---- もんだい1 ---- */
+  probBand(48, 'もんだい1　棒グラフの事件（さくら小学校のポスター）');
+  g.fillStyle='#2b2b33'; g.font=F(44); g.textAlign='left';
+  g.fillText('朝ごはんを食べた人の割合： 4月 84% ・ 5月 88% ・ 6月 92%', mm(13), mm(64.5));
+  wsBar({x:13, y:68, w:104, h:50}, c1.labels, c1.values, '%', {yMin:80, yMax:95, ticks:[80,85,90,95]});
+  qText(124, 74);
+  writeLines(124, 82, 73, 4, 10);
+  g.fillStyle='#2e8b57'; g.font=F(44,true);
+  g.fillText('正しいグラフを かきましょう（縦軸は 0 から）', mm(13), mm(127.5));
+  gridBox({x:13, y:131, w:184, h:40}, [0,20,40,60,80,100], c1.labels);
+  /* ---- もんだい2 ---- */
+  probBand(177, 'もんだい2　折れ線グラフの事件（ほしぞら商店の広告）');
+  g.fillStyle='#2b2b33'; g.font=F(35); g.textAlign='left';
+  g.fillText('1年間の来客数（人）： 1月302・2月298・3月305・4月300・5月297・6月303・7月299・8月296・9月301・10月306・11月312・12月318', mm(13), mm(193.5));
+  wsLine({x:13, y:197, w:104, h:46}, ['10月','11月','12月'], [306,312,318], {yMin:290, yMax:320, ticks:[290,300,310,320]});
+  qText(124, 203);
+  writeLines(124, 211, 73, 4, 9);
+  g.fillStyle='#2e8b57'; g.font=F(44,true);
+  g.fillText('1年分ぜんぶの 正しいグラフを かきましょう（縦軸は 0 から）', mm(13), mm(250));
+  gridBox({x:13, y:254, w:184, h:37}, [0,50,100,150,200,250,300,350], c2.labels);
+  g.fillStyle='#8b8574'; g.font=F(31); g.textAlign='center';
+  g.fillText('グラフ探偵 ― だましグラフを見破れ！ ワークシート／数字はすべて教材用の作り話です', W/2, mm(295.5));
+
+  wsCanvas=cvEl;
+  wsDataURL=cvEl.toDataURL('image/png');
+  cvEl.toBlob(b=>{ wsBlob=b; }, 'image/png');
+}
+/* ================= ワークシート印刷・共有 ================= */
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
+  || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+function openWsOverlay(){
+  $('wsImg').src=wsDataURL;
+  $('wsHint').textContent = isIOS
+    ? '画像を長押しして「写真に追加」で保存できます。共有ボタンからは印刷も選べます。'
+    : 'この画像を印刷してください（A4縦・1枚）。';
+  let canShareFiles=false;
+  try{
+    canShareFiles = !!(wsBlob && navigator.canShare &&
+      navigator.canShare({files:[new File([wsBlob],'worksheet.png',{type:'image/png'})]}));
+  }catch(e){}
+  $('wsShareBtn').classList.toggle('hidden', !canShareFiles);
+  $('wsOverlay').classList.remove('hidden');
+}
+$('wsBtn').addEventListener('click', ()=>{
+  sndClick();
+  if(!wsDataURL) buildWorksheet();
+  if(isIOS){ openWsOverlay(); return; }
+  const w=window.open('', '_blank');
+  if(w){
+    w.document.write('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>グラフ探偵ワークシート</title>'
+      +'<style>@page{size:A4 portrait;margin:0}html,body{margin:0;padding:0}img{width:210mm;height:297mm;display:block}</style></head>'
+      +'<body><img src="'+wsDataURL+'" onload="setTimeout(function(){window.focus();window.print();},120)"></body></html>');
+    w.document.close();
+  }else{
+    openWsOverlay();
+  }
+});
+$('wsShareBtn').addEventListener('click', async ()=>{
+  if(!wsBlob) return;
+  try{
+    await navigator.share({
+      files:[new File([wsBlob],'graph-tantei-worksheet.png',{type:'image/png'})],
+      title:'グラフ探偵ワークシート'
+    });
+  }catch(e){}
+});
+$('wsCloseBtn').addEventListener('click', ()=>{ $('wsOverlay').classList.add('hidden'); });
+
+/* ================= 初期化 ================= */
+renderCaseList();
+syncSoundBtn();
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{ try{ if(!wsDataURL) buildWorksheet(); }catch(e){} }, 700);
+});
+
+/* ================= 自己テスト（#selftest のときだけ動作） ================= */
+async function selfTest(){
+  const R={errors:[], steps:[]};
+  window.addEventListener('error', e=>{ R.errors.push('window.onerror: '+e.message); });
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  try{
+    for(const c of CASES){
+      openCase(c.id); await wait(80);
+      if($('trickChart').innerHTML.indexOf('<svg')<0) R.errors.push(c.id+': trick svg missing');
+      const wrongIdx=c.choices.findIndex((_,i)=>i!==c.answer);
+      $('choices').children[wrongIdx].click(); await wait(80);
+      if($('feedback').innerHTML.indexOf('ng')<0) R.errors.push(c.id+': no NG feedback');
+      if(store.solved[c.id]) R.errors.push(c.id+': solved on wrong pick');
+      $('choices').children[c.answer].click(); await wait(200);
+      if($('afterSolve').classList.contains('hidden')) R.errors.push(c.id+': afterSolve hidden');
+      if(!store.solved[c.id]) R.errors.push(c.id+': not marked solved');
+      $('fixBtn').click(); await wait(100);
+      if($('compareArea').classList.contains('hidden')) R.errors.push(c.id+': compare hidden');
+      if($('honestChart').innerHTML.indexOf('<svg')<0) R.errors.push(c.id+': honest svg missing');
+      if($('miniTrickChart').innerHTML.indexOf('<svg')<0) R.errors.push(c.id+': mini trick svg missing');
+      R.steps.push(c.id+' ok (points='+totalPoints()+')');
+      $('toListBtn').click(); await wait(60);
+    }
+    if($('allClearBanner').classList.contains('hidden')) R.errors.push('allClearBanner hidden');
+    R.points=totalPoints();
+    if(R.points!==200) R.errors.push('expected 200pt (wrong+correct per case), got '+R.points);
+    $('awardBtn').click(); await wait(120);
+    if($('screen-award').classList.contains('hidden')) R.errors.push('award screen hidden');
+    // ワークシート生成チェック
+    let tries=0;
+    while(!wsDataURL && tries<40){ await wait(150); tries++; }
+    if(!wsDataURL || wsDataURL.length<20000) R.errors.push('worksheet image not generated');
+    else R.steps.push('worksheet ok ('+Math.round(wsDataURL.length/1024)+' KB)');
+    R.done=true;
+  }catch(err){
+    R.errors.push('exception: '+(err && err.message));
+  }
+  $('selftest-results').textContent='SELFTEST '+JSON.stringify(R);
+  document.title='SELFTEST-DONE';
+}
+if(location.hash==='#selftest'){
+  window.addEventListener('load', ()=>setTimeout(selfTest, 400));
+}
+</script>
+</body>
+</html>
